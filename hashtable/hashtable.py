@@ -11,6 +11,10 @@ class HashTableEntry:
 # Hash table can't have fewer than this many slots
 MIN_CAPACITY = 8
 
+class LinkedList:
+    def __init__(self):
+        self.head = None
+
 
 class HashTable:
     """
@@ -21,7 +25,9 @@ class HashTable:
     """
 
     def __init__(self, capacity):
-        # Your code here
+        self.capacity = capacity
+        self.storage = [LinkedList()] * capacity
+        self.elements = 0
 
 
     def get_num_slots(self):
@@ -34,7 +40,7 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        return len(self.storage)
 
 
     def get_load_factor(self):
@@ -43,7 +49,7 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        return self.elements / self.get_num_slots()
 
 
     def fnv1(self, key):
@@ -52,9 +58,15 @@ class HashTable:
 
         Implement this, and/or DJB2.
         """
+        seed = 0
+        FNV_prime = 1099511628211
+        offset_basis = 14695981039346656037
 
-        # Your code here
-
+        hash = offset_basis + seed
+        for char in key:
+            hash = hash * FNV_prime
+            hash = hash ^ ord(char)
+        return hash
 
     def djb2(self, key):
         """
@@ -62,7 +74,10 @@ class HashTable:
 
         Implement this, and/or FNV-1.
         """
-        # Your code here
+        hash = 5381
+        for _ in key:
+            hash = ((hash << 5) + hash) + ord(key)
+        return hash & 0xFFFFFFFF
 
 
     def hash_index(self, key):
@@ -70,8 +85,11 @@ class HashTable:
         Take an arbitrary key and return a valid integer index
         between within the storage capacity of the hash table.
         """
-        #return self.fnv1(key) % self.capacity
-        return self.djb2(key) % self.capacity
+        # return self.fnv1(key) % self.capacity
+        # return self.djb2(key) % self.capacity
+        return self.fnv1(key) % self.get_num_slots()
+     
+
 
     def put(self, key, value):
         """
@@ -81,7 +99,27 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        # slot = self.hash_index(key)
+        # entry = HashTableEntry(key, value)
+        # self.capacity[slot] = entry
+        index = self.hash_index(key)
+
+        # check if the linked list is empty
+        if self.storage[index].head == None:
+            self.storage[index].head = HashTableEntry(key, value)
+            self.elements += 1
+            return
+
+        else: 
+            cur = self.storage[index].head
+            while cur.next:
+                # if the list has the specified key, replace the value
+                if cur.key == key:
+                    cur.value = value
+                cur = cur.next
+            # if the list doesn't have they key, add a new node 
+            cur.next = HashTableEntry(key, value)
+            self.elements += 1
 
 
     def delete(self, key):
@@ -92,7 +130,22 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        # self.put(key, None)
+        index = self.hash_index(key)
+        cur = self.storage[index].head
+
+        if cur.key == key:
+            self.storage[index].head = self.storage[index].head.next
+            self.elements -= 1
+            return
+
+        while cur.next:
+            prev = cur
+            cur = cur.next
+            if cur.key == key:
+                prev.next = cur.next
+                self.elements -= 1
+                return None
 
 
     def get(self, key):
@@ -103,7 +156,26 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        # slot = self.hash_index(key)
+        # entry = self.capacity[slot]
+
+        # if entry:
+        #     return entry.value
+        # return None
+        index = self.hash_index(key)
+        cur=self.storage[index].head
+
+        if cur == None:
+            return None
+
+        if cur.key == key:
+            return cur.value
+        
+        while cur.next:
+            cur = cur.next
+            if cur.key == key:
+                return cur.value
+        return None
 
 
     def resize(self, new_capacity):
@@ -113,7 +185,23 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        self.capacity = new_capacity
+        new_array = [LinkedList()] * new_capacity
+
+        for slot in self.storage:
+            cur = slot.head
+
+            while cur:
+                index = self.hash_index(cur.key)
+
+                if new_array[index].head == None:
+                    new_array[index].head = HashTableEntry(cur.key, cur.value)
+                else:
+                    node = HashTableEntry(cur.key, cur.value)
+                    node.next = new_array[index].head
+                    new_array[index].head = node
+                cur = cur.next
+            self.storage = new_array
 
 
 
